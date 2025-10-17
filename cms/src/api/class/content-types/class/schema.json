@@ -9,11 +9,7 @@
   "options": {
     "draftAndPublish": false
   },
-  "pluginOptions": {
-    "i18n": {
-      "localized": false
-    }
-  },
+  "pluginOptions": {},
   "attributes": {
     "title": {
       "type": "string",
@@ -27,6 +23,10 @@
       "relation": "oneToMany",
       "target": "api::module.module",
       "mappedBy": "class"
+    },
+    "slug": {
+      "type": "string",
+      "unique": true
     }
   }
 }
