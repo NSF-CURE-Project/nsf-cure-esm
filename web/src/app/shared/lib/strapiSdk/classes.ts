@@ -3,7 +3,6 @@ import type {
   StrapiCollectionRes,
   StrapiEntity,
   ClassAttrs,
-  ModuleAttrs,
   LessonAttrs,
 } from "@/app/shared/lib/strapiSdk/types";
 

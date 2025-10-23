@@ -11,11 +11,15 @@ export default async function Sidebar() {
   const tree: ClassItem[] = await getClassesTree();
 
   if (!tree?.length) {
-    return <nav className="text-sm text-gray-500 p-3">No classes yet.</nav>;
+    return (
+      <nav className="text-sm text-muted-foreground bg-card border border-border rounded-lg p-3">
+        No classes yet.
+      </nav>
+    );
   }
 
   return (
-    <nav className="text-sm space-y-4">
+    <nav className="text-sm text-foreground bg-card rounded-lg p-3 space-y-4">
       {tree.map((_class, ci) => {
         const classKey = _class.id ?? `class-${ci}`;
         const classTitle =
@@ -24,8 +28,9 @@ export default async function Sidebar() {
           `Class ${_class.id ?? ci}`;
 
         return (
-          <div key={classKey}>
-            <p className="font-semibold mb-1">{classTitle}</p>
+          <div key={classKey} className="space-y-2">
+            {/* Class title */}
+            <p className="font-semibold text-primary">{classTitle}</p>
 
             {(_class.modules ?? []).map((mod, mi) => {
               const modKey = mod.id ?? `mod-${classKey}-${mi}`;
@@ -34,28 +39,35 @@ export default async function Sidebar() {
                 `Module ${mod.id ?? `${_class.id ?? ci}-${mi}`}`;
 
               return (
-                <div key={modKey} className="ml-3">
-                  <p className="text-gray-500 mb-1">{modTitle}</p>
+                <div key={modKey} className="ml-3 space-y-1.5">
+                  {/* Module title */}
+                  <p className="text-muted-foreground">{modTitle}</p>
 
+                  {/* Lessons */}
                   <ul className="ml-2 space-y-1">
                     {(mod.lessons ?? []).map((lesson, li) => {
                       const lessonKey = lesson.id ?? `lesson-${modKey}-${li}`;
+                      const slug = safeTrim(lesson.slug);
                       const lessonTitle =
                         safeTrim(lesson.title) ||
-                        humanizeSlug(lesson.slug) ||
+                        humanizeSlug(slug) ||
                         `Lesson ${lesson.id ?? li}`;
+
+                      const linkBase =
+                        "rounded-sm px-1 py-0.5 " +
+                        "text-foreground/80 hover:text-primary " +
+                        "focus-visible:outline-none focus-visible:ring-2 " +
+                        "focus-visible:ring-ring focus-visible:ring-offset-2 " +
+                        "focus-visible:ring-offset-background transition-colors";
 
                       return (
                         <li key={lessonKey}>
-                          {safeTrim(lesson.slug) ? (
-                            <Link
-                              href={`/lessons/${safeTrim(lesson.slug)}`}
-                              className="hover:underline"
-                            >
+                          {slug ? (
+                            <Link href={`/lessons/${slug}`} className={linkBase}>
                               {lessonTitle}
                             </Link>
                           ) : (
-                            <span>{lessonTitle}</span>
+                            <span className="text-muted-foreground">{lessonTitle}</span>
                           )}
                         </li>
                       );
@@ -70,3 +82,4 @@ export default async function Sidebar() {
     </nav>
   );
 }
+

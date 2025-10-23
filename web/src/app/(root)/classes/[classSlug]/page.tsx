@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import type { Metadata } from "next";
 import { getClassBySlug } from "@/app/shared/lib/strapiSdk/classes";
 
 type Params = Promise<{ classSlug: string }>;
