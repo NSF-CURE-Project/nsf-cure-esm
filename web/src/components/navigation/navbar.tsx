@@ -8,8 +8,6 @@ export default function Navbar() {
   const { theme, systemTheme } = useTheme();
   const effectiveTheme = theme === "system" ? systemTheme : theme;
 
-  // You’re currently using the same asset for both themes — that’s fine.
-  // If you have a dark/light variant, put the alt path here.
   const cppLogo =
     effectiveTheme === "dark"
       ? "/assets/logos/cpp_yellow.png"

@@ -1,6 +1,6 @@
-// components/ui/ThemedButton.tsx
 "use client"
 import Link from "next/link"
+import React from "react";
 
 export function ThemedButton({ href, children }: { href: string; children: React.ReactNode }) {
   return (

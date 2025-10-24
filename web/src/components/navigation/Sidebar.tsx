@@ -1,7 +1,7 @@
-// src/app/components/root/Sidebar.tsx
 import Link from "next/link";
-import { getClassesTree } from "@/app/shared/lib/strapiSdk/root";
-import type { ClassItem } from "@/app/shared/lib/strapiSdk/types";
+import { getClassesTree } from "@/lib/strapiSdk/root";
+import type { ClassItem } from "@/lib/strapiSdk/types";
+import React from "react";
 
 // tiny helpers
 const safeTrim = (s?: string | null) => (s ?? "").trim();

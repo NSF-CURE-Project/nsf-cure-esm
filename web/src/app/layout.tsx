@@ -8,8 +8,9 @@ import { Inter } from "next/font/google";
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 // Theme provider wrapper (using next-themes example)
-import { ThemeProvider } from "@/app/components/theme-provider"; // create this (see below)
-import Navbar from "./components/navigation/navbar";
+import { ThemeProvider } from "../theme/theme-provider" // create this (see below)
+import Navbar from "@/components/navigation/navbar";
+import React from "react";
 
 export const metadata: Metadata = {
   title: "Supplemental Engineering Lessons",

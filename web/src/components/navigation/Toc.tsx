@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ThemeToggle } from "@/app/components/ThemeToggle";
+import { ThemeToggle } from "@/theme/ThemeToggle";
 
 type TocItem = { id: string; text: string; level: number };
 

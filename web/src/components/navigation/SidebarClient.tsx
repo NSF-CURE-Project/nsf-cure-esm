@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
-import type { ClassItem } from "@/app/shared/lib/strapiSdk/types";
+import type { ClassItem } from "@/lib/strapiSdk/types";
 
 type Props = { tree: ClassItem[] };
 

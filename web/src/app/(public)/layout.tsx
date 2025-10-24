@@ -1,6 +1,7 @@
 // SERVER component (no "use client")
-import Sidebar from "@/app/components/root/Sidebar";
-import Toc from "@/app/components/root/Toc";
+import Sidebar from "@/components/navigation/Sidebar";
+import Toc from "@/components/navigation/Toc";
+import React from "react";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

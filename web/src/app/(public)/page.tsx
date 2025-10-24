@@ -1,4 +1,5 @@
-import { ThemedButton } from "../components/ui/ThemedButton";
+import React from "react";
+import { ThemedButton } from "@/components/ui/ThemedButton"
 
 export default function Landing() {
   return (

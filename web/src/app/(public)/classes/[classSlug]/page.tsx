@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getClassBySlug } from "@/app/shared/lib/strapiSdk/classes";
+import { getClassBySlug } from "@/lib/strapiSdk/classes";
 
 type Params = Promise<{ classSlug: string }>;
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>
