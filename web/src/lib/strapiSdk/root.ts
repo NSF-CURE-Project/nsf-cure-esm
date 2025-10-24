@@ -187,7 +187,6 @@ export async function getClassesTree(): Promise<ClassItem[]> {
   const list = raw.map((x) => mapClass(x as AnyEntity)).filter(Boolean) as ClassItem[]
 
   if (!list.length) {
-    // eslint-disable-next-line no-console
     console.warn(
       "getClassesTree: empty after mapping. First raw item:",
       JSON.stringify(raw[0], null, 2)

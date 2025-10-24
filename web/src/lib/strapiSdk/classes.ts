@@ -1,10 +1,10 @@
-import { apiGet } from "@/app/shared/lib/strapiClient";
+import { apiGet } from "@/lib/strapiClient";
 import type {
   StrapiCollectionRes,
   StrapiEntity,
   ClassAttrs,
   LessonAttrs,
-} from "@/app/shared/lib/strapiSdk/types";
+} from "@/lib/strapiSdk/types"
 
 // Fetch ONE class by slug
 export async function getClassBySlug(slug: string) {

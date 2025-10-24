@@ -1,16 +1,11 @@
 import "./globals.css";
 import type { Metadata } from "next";
-import Link from "next/link"
-import Image from "next/image"
-
-// (optional) fonts via next/font
 import { Inter } from "next/font/google";
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
-
-// Theme provider wrapper (using next-themes example)
 import { ThemeProvider } from "../theme/theme-provider" // create this (see below)
 import Navbar from "@/components/navigation/navbar";
 import React from "react";
+
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
   title: "Supplemental Engineering Lessons",
