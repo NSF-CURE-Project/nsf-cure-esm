@@ -9,18 +9,11 @@
   "options": {
     "draftAndPublish": false
   },
-  "pluginOptions": {
-    "i18n": {
-      "localized": false
-    }
-  },
+  "pluginOptions": {},
   "attributes": {
     "title": {
       "type": "string",
       "required": true
-    },
-    "description": {
-      "type": "text"
     },
     "lessons": {
       "type": "relation",
@@ -33,6 +26,13 @@
       "relation": "manyToOne",
       "target": "api::class.class",
       "inversedBy": "modules"
+    },
+    "slug": {
+      "type": "string",
+      "unique": true
+    },
+    "objective": {
+      "type": "richtext"
     }
   }
 }

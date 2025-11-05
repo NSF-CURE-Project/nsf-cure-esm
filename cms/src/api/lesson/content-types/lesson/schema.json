@@ -9,11 +9,7 @@
   "options": {
     "draftAndPublish": false
   },
-  "pluginOptions": {
-    "i18n": {
-      "localized": false
-    }
-  },
+  "pluginOptions": {},
   "attributes": {
     "title": {
       "type": "string",
@@ -40,6 +36,10 @@
       "relation": "manyToOne",
       "target": "api::module.module",
       "inversedBy": "lessons"
+    },
+    "slug": {
+      "type": "string",
+      "unique": true
     }
   }
 }

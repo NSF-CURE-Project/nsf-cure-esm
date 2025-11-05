@@ -19,46 +19,43 @@ export default function Navbar() {
     : "/assets/logos/nsf.png";
 
   return (
-    <nav
-      aria-label="Primary"
-      className="
-        sticky top-0 z-50
-        flex items-center justify-between
-        h-16 px-4 sm:px-6 border-b
-        bg-background/80 backdrop-blur
-        supports-[backdrop-filter]:bg-background/60
-      "
-    >
-      {/* Left cluster: logos + wordmark */}
-      <div className="flex min-w-0 items-center gap-3 sm:gap-4">
-        <Link href="/" aria-label="Home" className="flex items-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded">
-          <Image
-            src={cppLogo}
-            alt="Cal Poly Pomona Logo"
-            width={56}
-            height={56}
-            className="h-12 w-auto sm:h-14"
-            priority
-          />
-        </Link>
+<nav
+  aria-label="Primary"
+  className="
+    sticky top-0 z-50
+    flex items-center
+    h-16 px-4 sm:px-6 border-b
+    bg-background/80 backdrop-blur
+    supports-[backdrop-filter]:bg-background/60
+  "
+>
+  {/* Left: logos + links together */}
+  <div className="flex items-center gap-6">
+    <Link href="/" aria-label="Home" className="flex items-center gap-2">
+      <Image src={cppLogo} alt="Cal Poly Pomona Logo" width={56} height={56} className="h-12 w-auto sm:h-14" priority />
+    </Link>
 
-        <Image
-          src={nsfLogo}
-          alt="NSF Logo"
-          width={150}
-          height={80}
-          className="h-12 w-auto sm:h-14"
-        />
+    <Image src={nsfLogo} alt="NSF Logo" width={150} height={80} className="h-12 w-auto sm:h-14" />
+    <span className="font-semibold text-lg sm:text-2xl text-foreground">
+      NSF CURE ESM
+    </span>
 
-        <span className="truncate font-semibold text-lg sm:text-2xl text-foreground">
-          NSF CURE ESM
-        </span>
-      </div>
+    {/* 🧭 Links — right next to wordmark */}
+    <div className="flex items-center gap-5 ml-8 text-lg">
+      <Link href="/" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
+        Home
+      </Link>
+      <Link href="/contacts" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
+        Contact Us
+      </Link>
+    </div>
+  </div>
 
-      {/* Right cluster: controls (theme toggle, etc.) */}
-      <div className="flex items-center gap-3">
-        {/* <ThemeToggle /> etc. */}
-      </div>
-    </nav>
+  {/* Optional: right-side cluster (theme toggle, etc.) */}
+  <div className="ml-auto flex items-center gap-3">
+    {/* <ThemeToggle /> */}
+  </div>
+</nav>
+
   );
 }

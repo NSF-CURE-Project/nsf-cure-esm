@@ -7,8 +7,19 @@ type TocItem = { id: string; text: string; level: number };
 
 export default function Toc() {
   const [items, setItems] = useState<TocItem[]>([]);
-  const [open, setOpen] = useState(true);     // desktop sidebar open/closed
-  const [drawer, setDrawer] = useState(false); // mobile drawer
+  const [open, setOpen] = useState(true);
+  const [drawer, setDrawer] = useState(false);
+
+  // Restore persisted state
+  useEffect(() => {
+    const saved = localStorage.getItem("toc-open");
+    if (saved !== null) setOpen(saved === "true");
+  }, []);
+
+  // Persist on change
+  useEffect(() => {
+    localStorage.setItem("toc-open", String(open));
+  }, [open]);
 
   // Build TOC from headings
   useEffect(() => {
@@ -26,20 +37,13 @@ export default function Toc() {
     setItems(tocItems);
   }, []);
 
-  // 🔑 Drive the layout's 3rd grid column and the main content width via CSS vars.
-  // When closed, use a thin rail (0.75rem) so the toggle button remains visible,
-  // and widen the main content's max width so it reshapes to fill the space.
+  // Drive layout width via CSS vars
   useEffect(() => {
     const layout = document.getElementById("layout");
     const content = document.getElementById("content");
-    if (layout) {
-      layout.style.setProperty("--toc-w", open ? "20rem" : "0.75rem");
-    }
-    if (content) {
-      content.style.setProperty("--content-max", open ? "110ch" : "140ch"); // or 90rem
-    }
+    if (layout) layout.style.setProperty("--toc-w", open ? "20rem" : "0.75rem");
+    if (content) content.style.setProperty("--content-max", open ? "110ch" : "140ch");
   }, [open]);
-  
 
   // Active section highlight
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -57,35 +61,29 @@ export default function Toc() {
     return () => obs.disconnect();
   }, [items]);
 
-  // Memoized list
+  // TOC list
   const TocList = useMemo(
     () => (
-      <nav className="text-sm">
-        <p className="mb-2 font-semibold">On this page</p>
-        <ul className="space-y-1">
-          {items.map((item) => {
-            const isActive = activeId === item.id;
-            return (
-              <li key={item.id} className={item.level === 3 ? "ml-3" : ""}>
-                <a
-                  href={`#${item.id}`}
-                  onClick={() => setDrawer(false)}
-                  className={[
-                    "block rounded px-2 py-1 hover:underline",
-                    "text-muted-foreground",
-                    isActive ? "font-semibold underline text-foreground" : "",
-                  ].join(" ")}
-                >
-                  {item.text}
-                </a>
-              </li>
-            );
-          })}
-        </ul>
-        <div className="border-t border-border pt-4 mt-4">
-          <ThemeToggle />
-        </div>
-      </nav>
+      <ul className="space-y-1">
+        {items.map((item) => {
+          const isActive = activeId === item.id;
+          return (
+            <li key={item.id} className={item.level === 3 ? "ml-3" : ""}>
+              <a
+                href={`#${item.id}`}
+                onClick={() => setDrawer(false)}
+                className={[
+                  "block rounded px-2 py-1 hover:underline",
+                  "text-muted-foreground",
+                  isActive ? "font-semibold underline text-foreground" : "",
+                ].join(" ")}
+              >
+                {item.text}
+              </a>
+            </li>
+          );
+        })}
+      </ul>
     ),
     [items, activeId]
   );
@@ -94,7 +92,7 @@ export default function Toc() {
     <>
       {/* Mobile trigger */}
       <button
-        className="fixed bottom-5 right-5 z-40 rounded-full border bg-background/70 px-4 py-2 text-sm shadow-sm backdrop-blur lg:hidden"
+        className="fixed bottom-5 right-5 z-40 rounded-full bg-background/70 px-4 py-2 text-sm backdrop-blur lg:hidden"
         onClick={() => setDrawer(true)}
         aria-controls="toc-drawer"
         aria-expanded={drawer}
@@ -107,11 +105,11 @@ export default function Toc() {
         id="toc-drawer"
         role="dialog"
         aria-modal="true"
-        className={`fixed inset-y-0 right-0 z-50 w-72 transform border-l bg-background transition-transform duration-200 lg:hidden ${
+        className={`fixed inset-y-0 right-0 z-50 w-72 transform bg-background transition-transform duration-200 lg:hidden ${
           drawer ? "translate-x-0" : "translate-x-full"
         }`}
       >
-        <div className="flex items-center justify-between border-b px-4 py-3">
+        <div className="flex items-center justify-between px-4 py-3">
           <span className="font-semibold">Table of contents</span>
           <button
             className="rounded px-2 py-1 text-sm hover:bg-muted"
@@ -120,38 +118,56 @@ export default function Toc() {
             Close
           </button>
         </div>
-        <div className="max-h-[calc(100vh-56px)] overflow-y-auto p-3">{TocList}</div>
+        <div className="max-h-[calc(100vh-56px)] overflow-y-auto p-3">
+          <nav className="text-sm space-y-4">
+            {TocList}
+            <div className="pt-4">
+              <ThemeToggle />
+            </div>
+          </nav>
+        </div>
       </div>
 
-      {/* Desktop TOC (thin rail when closed) */}
+      {/* Desktop TOC */}
       <aside
         className={`relative hidden lg:block transition-[width] duration-200 ${
-          open ? "w-full" : "w-12" /* internal width for the aside itself */
+          open ? "w-full" : "w-12"
         }`}
         aria-label="Table of contents"
       >
-        {/* Collapse / expand button */}
+        {/* Toggle button */}
         <button
-          className="absolute -left-3 top-2 z-10 inline-flex h-7 w-7 items-center justify-center rounded-full border bg-background text-xs shadow-sm"
+          className={[
+            "absolute top-2 z-10 inline-flex h-7 w-7 items-center justify-center rounded-full bg-background text-xs transition-all duration-200",
+            open ? "-left-3" : "-left-6",
+          ].join(" ")}
           onClick={() => setOpen((v) => !v)}
           aria-expanded={open}
           aria-controls="desktop-toc"
           title={open ? "Collapse TOC" : "Expand TOC"}
         >
-          {open ? "-->" : "<"}
+          {open ? "→" : "←"}
         </button>
 
-        {/* Sticky panel aligned to navbar */}
+        {/* Sticky section */}
         <div
           id="desktop-toc"
           className="sticky top-[var(--nav-h)] h-[calc(100dvh-var(--nav-h))] overflow-hidden"
         >
           <div
-            className={`h-full overflow-y-auto rounded-lg border border-border/40 bg-muted/20 p-4 backdrop-blur-sm transition-opacity ${
+            className={`h-full overflow-y-auto transition-opacity ${
               open ? "opacity-100" : "pointer-events-none opacity-0"
             }`}
           >
-            {TocList}
+            <div className="sticky top-0 z-10 px-4 py-3">
+              <p className="mb-2 font-semibold">On this page</p>
+            </div>
+            <nav className="text-sm px-4 pb-6">
+              {TocList}
+              <div className="mt-6">
+                <ThemeToggle />
+              </div>
+            </nav>
           </div>
         </div>
       </aside>

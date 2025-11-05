@@ -1,122 +1,214 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
-import type { ClassItem } from "@/lib/strapiSdk/types";
 
-type Props = { tree: ClassItem[] };
+// ========= Shapes (loose) =========
+type LessonItem  = { slug?: string; title?: string; name?: string } & Record<string, any>;
+type ChapterItem = {
+  slug?: string; title?: string; name?: string;
+  lessons?: LessonItem[]; items?: LessonItem[]; children?: LessonItem[];
+} & Record<string, any>;
+type ClassItem   = {
+  slug?: string; title?: string; name?: string;
+  chapters?: ChapterItem[]; modules?: ChapterItem[]; children?: ChapterItem[];
+} & Record<string, any>;
 
-export function SidebarClient({ tree }: Props) {
+type Props = { classes: ClassItem[] };
+
+// ========= Accessors =========
+const getClassSlug   = (c: ClassItem)   => c.slug ?? c.classSlug ?? c.id ?? "";
+const getClassTitle  = (c: ClassItem)   => c.title ?? c.name ?? "Untitled Class";
+const getChapters    = (c: ClassItem): ChapterItem[] =>
+  (c.chapters ?? c.modules ?? c.children ?? []) as ChapterItem[];
+
+const getChapterSlug  = (ch: ChapterItem) => ch.slug ?? ch.chapterSlug ?? ch.id ?? "";
+const getChapterTitle = (ch: ChapterItem) => ch.title ?? ch.name ?? "Untitled Chapter";
+const getLessons      = (ch: ChapterItem): LessonItem[] =>
+  (ch.lessons ?? ch.items ?? ch.children ?? []) as LessonItem[];
+
+const getLessonSlug   = (l: LessonItem) => l.slug ?? l.lessonSlug ?? l.id ?? "";
+const getLessonTitle  = (l: LessonItem) => l.title ?? l.name ?? "Untitled Lesson";
+
+export default function SidebarClient({ classes }: Props) {
   const pathname = usePathname();
 
-  // 🟢 Start with everything expanded
-  const [openClasses, setOpenClasses] = useState<Record<number, boolean>>({});
-  const [openModules, setOpenModules] = useState<Record<number, boolean>>({});
+  // Parse /classes/[classSlug]/lessons/[lessonSlug]
+  const { currentClassSlug, currentLessonSlug } = useMemo(() => {
+    const parts = pathname.split("/").filter(Boolean);
+    const iClass = parts.indexOf("classes");
+    const iLesson = parts.indexOf("lessons");
+    return {
+      currentClassSlug: iClass >= 0 ? parts[iClass + 1] : null,
+      currentLessonSlug: iLesson >= 0 ? parts[iLesson + 1] : null,
+    };
+  }, [pathname]);
 
-  // initialize open states on mount
+  // lessonSlug -> { classSlug, chapterSlug }
+  const lessonOwner = useMemo(() => {
+    const map: Record<string, { classSlug: string; chapterSlug: string }> = {};
+    for (const cls of classes ?? []) {
+      const cSlug = getClassSlug(cls);
+      for (const ch of getChapters(cls)) {
+        const chSlug = getChapterSlug(ch);
+        for (const ls of getLessons(ch)) {
+          const lSlug = getLessonSlug(ls);
+          if (cSlug && chSlug && lSlug) map[lSlug] = { classSlug: cSlug, chapterSlug: chSlug };
+        }
+      }
+    }
+    return map;
+  }, [classes]);
+
+  // Persisted open state
+  const STORAGE_CLASSES  = "sidebar:open-classes";
+  const STORAGE_CHAPTERS = "sidebar:open-chapters";
+
+  const [openClasses, setOpenClasses] = useState<Record<string, boolean>>({});
+  const [openChapters, setOpenChapters] = useState<Record<string, boolean>>({});
+
+  // Init + auto-open current route owner
   useEffect(() => {
-    const classState: Record<number, boolean> = {};
-    const moduleState: Record<number, boolean> = {};
+    let cMap: Record<string, boolean> = {};
+    let hMap: Record<string, boolean> = {};
+    try {
+      cMap = JSON.parse(localStorage.getItem(STORAGE_CLASSES) || "{}") || {};
+      hMap = JSON.parse(localStorage.getItem(STORAGE_CHAPTERS) || "{}") || {};
+    } catch {}
 
-    tree.forEach((c) => {
-      classState[c.id] = true; // open all classes by default
-      c.modules?.forEach((m) => {
-        moduleState[m.id] = true; // open all modules by default
-      });
-    });
+    const owner = currentLessonSlug ? lessonOwner[currentLessonSlug] : null;
+    const firstClassSlug = classes[0] ? getClassSlug(classes[0]) : null;
 
-    setOpenClasses(classState);
-    setOpenModules(moduleState);
-  }, [tree]);
+    const defaultClass = currentClassSlug || owner?.classSlug || firstClassSlug;
+    const defaultChapter = owner ? `${owner.classSlug}/${owner.chapterSlug}` : null;
 
-  const toggleClass = (id: number) =>
-    setOpenClasses((s) => ({ ...s, [id]: !s[id] }));
+    if (defaultClass && cMap[defaultClass] !== true) cMap[defaultClass] = true;
+    if (defaultChapter && hMap[defaultChapter] !== true) hMap[defaultChapter] = true;
+    if (!Object.keys(cMap).length && defaultClass) cMap[defaultClass] = true;
 
-  const toggleModule = (id: number) =>
-    setOpenModules((s) => ({ ...s, [id]: !s[id] }));
+    setOpenClasses(cMap);
+    setOpenChapters(hMap);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname, JSON.stringify(lessonOwner), classes?.length]);
 
-  const safe = (s?: string | null) => (s ?? "").trim();
-  const pretty = (s?: string | null) => safe(s).replace(/-/g, " ");
+  // Persist on change
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_CLASSES, JSON.stringify(openClasses));
+      localStorage.setItem(STORAGE_CHAPTERS, JSON.stringify(openChapters));
+    } catch {}
+  }, [openClasses, openChapters]);
+
+  const toggleClass = (slug: string) =>
+    setOpenClasses((m) => ({ ...m, [slug]: !m[slug] }));
+
+  const toggleChapter = (classSlug: string, chapterSlug: string) => {
+    const key = `${classSlug}/${chapterSlug}`;
+    setOpenChapters((m) => ({ ...m, [key]: !m[key] }));
+  };
 
   return (
-    <nav className="text-sm space-y-3">
-      {tree.map((c) => {
-        const classTitle = safe(c.title) || pretty(c.slug) || `Class ${c.id}`;
-        const classOpen = !!openClasses[c.id];
+    <nav className="text-sm">
+      <ul className="space-y-3">
+        {(classes ?? []).map((cls) => {
+          const cSlug = getClassSlug(cls);
+          if (!cSlug) return null;
+          const classOpen = !!openClasses[cSlug];
 
-        return (
-          <div key={c.id} className="rounded-lg">
-            {/* CLASS HEADER */}
-            <button
-              onClick={() => toggleClass(c.id)}
-              aria-expanded={classOpen}
-              className="w-full flex items-center justify-between px-3 py-2 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800"
-            >
-              <span className="font-semibold">{classTitle}</span>
-              <span className="ml-2 text-xs">{classOpen ? "▾" : "▸"}</span>
-            </button>
+          return (
+            <li key={cSlug}>
+              {/* 🟡 Class header (Cal Poly Gold) */}
+              <button
+                type="button"
+                aria-expanded={classOpen}
+                aria-controls={`panel-class-${cSlug}`}
+                onClick={() => toggleClass(cSlug)}
+                className="group flex w-full items-center gap-2 px-4 py-2 font-semibold text-[#FFB81C] transition-colors hover:bg-[#FFB81C]/10 hover:text-[#FFB81C]"
+              >
+                <span
+                  className={["inline-block transition-transform", classOpen ? "rotate-90" : ""].join(" ")}
+                  aria-hidden="true"
+                >
+                  ▶
+                </span>
+                <span>{getClassTitle(cls)}</span>
+              </button>
 
-            {/* MODULES */}
-            {classOpen && (c.modules?.length ?? 0) > 0 && (
-              <div className="mt-1 pl-3 space-y-2">
-                {c.modules!.map((m) => {
-                  const modTitle =
-                    safe(m.title) || pretty(m.slug) || `Module ${m.id}`;
-                  const modOpen = !!openModules[m.id];
+              {/* Chapters (collapsible) */}
+              <div
+                id={`panel-class-${cSlug}`}
+                className={[
+                  "grid transition-[grid-template-rows,opacity] duration-200 ease-out",
+                  classOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-70",
+                ].join(" ")}
+              >
+                <ul className="min-h-0 overflow-hidden pl-6 pr-2 space-y-2">
+                  {getChapters(cls).map((ch) => {
+                    const chSlug = getChapterSlug(ch);
+                    if (!chSlug) return null;
+                    const chKey = `${cSlug}/${chSlug}`;
+                    const chOpen = !!openChapters[chKey];
 
-                  return (
-                    <div key={m.id}>
-                      <button
-                        onClick={() => toggleModule(m.id)}
-                        aria-expanded={modOpen}
-                        className="w-full flex items-center justify-between px-2 py-1 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600"
-                      >
-                        <span>{modTitle}</span>
-                        <span className="ml-2 text-xs">{modOpen ? "▾" : "▸"}</span>
-                      </button>
+                    return (
+                      <li key={chSlug}>
+                        {/* Chapter header */}
+                        <button
+                          type="button"
+                          aria-expanded={chOpen}
+                          aria-controls={`panel-ch-${chKey}`}
+                          onClick={() => toggleChapter(cSlug, chSlug)}
+                          className="group flex w-full items-center gap-2 px-2 py-1 font-medium rounded-md transition-colors hover:bg-accent/25 hover:text-accent-foreground"
+                        >
+                          <span
+                            className={["inline-block transition-transform", chOpen ? "rotate-90" : ""].join(" ")}
+                            aria-hidden="true"
+                          >
+                            ▶
+                          </span>
+                          <span>{getChapterTitle(ch)}</span>
+                        </button>
 
-                      {/* LESSONS */}
-                      {modOpen && (m.lessons?.length ?? 0) > 0 && (
-                        <ul className="mt-1 pl-3 space-y-1">
-                          {m.lessons!.map((l) => {
-                            const title =
-                              safe(l.title) || pretty(l.slug) || `Lesson ${l.id}`;
-                            const href = l.slug ? `/lessons/${l.slug}` : undefined;
-                            const active =
-                              !!href && pathname && pathname.startsWith(href);
-
-                            return (
-                              <li key={l.id}>
-                                {href ? (
+                        {/* Lessons (collapsible) */}
+                        <div
+                          id={`panel-ch-${chKey}`}
+                          className={[
+                            "grid transition-[grid-template-rows,opacity] duration-200 ease-out",
+                            chOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-70",
+                          ].join(" ")}
+                        >
+                          <ul className="min-h-0 overflow-hidden pl-6 py-1 space-y-1">
+                            {getLessons(ch).map((ls) => {
+                              const lsSlug = getLessonSlug(ls);
+                              if (!lsSlug) return null;
+                              const active = lsSlug === currentLessonSlug;
+                              return (
+                                <li key={lsSlug}>
                                   <Link
-                                    href={href}
-                                    className={`block px-2 py-1 rounded hover:underline ${
+                                    href={`/classes/${cSlug}/lessons/${lsSlug}`}
+                                    className={[
+                                      "block rounded-md px-2 py-1 transition-colors",
                                       active
-                                        ? "bg-zinc-100 dark:bg-zinc-800 font-medium"
-                                        : ""
-                                    }`}
+                                        ? "bg-accent text-accent-foreground font-semibold"
+                                        : "text-muted-foreground hover:bg-accent/20 hover:text-accent-foreground",
+                                    ].join(" ")}
                                   >
-                                    {title}
+                                    {getLessonTitle(ls)}
                                   </Link>
-                                ) : (
-                                  <span className="block px-2 py-1 text-zinc-500">
-                                    {title}
-                                  </span>
-                                )}
-                              </li>
-                            );
-                          })}
-                        </ul>
-                      )}
-                    </div>
-                  );
-                })}
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
               </div>
-            )}
-          </div>
-        );
-      })}
+            </li>
+          );
+        })}
+      </ul>
     </nav>
   );
 }
