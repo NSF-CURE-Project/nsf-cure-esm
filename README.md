@@ -1,2 +1,3 @@
 # nsf-cure-esm
-<img width="1505" height="906" alt="image" src="https://github.com/user-attachments/assets/174b3f6d-1c76-4ef4-89c2-d38edb03d3b1" />
+<img width="1352" height="804" alt="image" src="https://github.com/user-attachments/assets/235d6daf-d9c4-4178-965b-782ab1ee2dda" />
+
