@@ -37,13 +37,16 @@ export default function Navbar() {
 
     <Image src={nsfLogo} alt="NSF Logo" width={150} height={80} className="h-12 w-auto sm:h-14" />
     <span className="font-semibold text-lg sm:text-2xl text-foreground">
-      NSF CURE ESM
+      NSF CURE SBP
     </span>
 
     {/* 🧭 Links — right next to wordmark */}
     <div className="flex items-center gap-5 ml-8 text-lg">
       <Link href="/" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
         Home
+      </Link>
+      <Link href="/contacts" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
+        Resources
       </Link>
       <Link href="/contacts" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
         Contact Us

@@ -1,77 +1,91 @@
 import React from "react";
-import { ThemedButton } from "@/components/ui/ThemedButton"
+import { ThemedButton } from "@/components/ui/ThemedButton";
+import { RichText } from "@/components/ui/richText";
+import type { BlocksContent } from "@strapi/blocks-react-renderer";
 
-export default function Landing() {
+export const dynamic = "force-dynamic";
+export const fetchCache = "default-no-store";
+
+const STRAPI_URL = process.env.STRAPI_URL ?? "http://localhost:1337";
+const IS_PROD = process.env.NODE_ENV === "production";
+const PUB = IS_PROD ? "live" : "preview";
+
+type HomePageFields = {
+  overview: BlocksContent | null;
+  missionStatement: BlocksContent | null;
+  goals: BlocksContent | null;
+};
+
+async function getHomePage(): Promise<HomePageFields | null> {
+  const url = new URL("/api/home-pages", STRAPI_URL);
+  url.searchParams.set("publicationState", PUB);
+  url.searchParams.set("populate", "*");
+
+  const res = await fetch(url.toString(), { cache: "no-store" });
+  if (!res.ok) return null;
+
+  const json = await res.json();
+  const first = Array.isArray(json?.data) ? json.data[0] : null;
+  if (!first) return null;
+
+  return {
+    overview: (first.overview ?? null) as BlocksContent | null,
+    missionStatement: (first.missionStatement ?? null) as BlocksContent | null,
+    goals: (first.goals ?? null) as BlocksContent | null,
+  };
+}
+
+export default async function Landing() {
+  const home = await getHomePage();
+
   return (
     <div className="mx-auto max-w-[60rem] px-6">
-      <header>
-        <h1 className="text-4xl sm:text-5xl font-bold tracking-tight">
-          NSF CURE Engineering Supplemental Materials
-        </h1>
+      <div className="mx-auto max-w-[40rem]">
+        <header>
+          <h1 className="text-4xl sm:text-5xl font-bold tracking-tight">
+            NSF CURE Summer Bridge Program
+          </h1>
 
-        <p className="mt-3 text-muted-foreground">
-          Welcome to NSF CURE Engineering Supplemental Materials, a platform designed to make complex engineering topics easier to learn and teach.
-          Browse interactive lessons, project examples, and resources developed through the NSF-funded CURE initiative at Cal Poly Pomona.
-        </p>
-      </header>
+          {home?.overview ? (
+            <RichText
+              content={home.overview}
+              className="mt-3 text-muted-foreground leading-7"
+            />
+          ) : (
+            <p className="mt-3 text-muted-foreground">
+              Welcome to NSF CURE Engineering Supplemental Materials...
+            </p>
+          )}
+        </header>
 
-      <section className="mt-8" aria-labelledby="getting-started">
-        {/* TOC anchor */}
+        {/* Hidden H2 so TOC has a top-level "Getting Started" anchor */}
         <h2 id="getting-started" className="sr-only">
           Getting Started
         </h2>
 
-        <ThemedButton href="/materials">Getting Started</ThemedButton>
-      </section>
+        <section className="mt-6">
+          <ThemedButton href="/materials">Getting Started</ThemedButton>
+        </section>
 
-      <section className="mt-10" aria-labelledby="about">
-        {/* TOC anchor */}
-        <h2 id="about" className="sr-only">
-          About
-        </h2>
+        <section className="mt-10 space-y-10">
+          {home?.missionStatement && (
+            <div>
+              <h2 className="text-2xl font-semibold mb-3">
+                Our Purpose at NSF CURE SBP
+              </h2>
+              <RichText content={home.missionStatement} className="leading-7" />
+            </div>
+          )}
 
-        {/* Themed card; aligns with the same container */}
-        <article className="bg-card text-card-foreground rounded-xl p-6 shadow-sm">
-          <div className="space-y-4 leading-7">
-            <p>
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis enim odio, tempor quis consequat at, sagittis nec risus. Sed quis felis
-              pellentesque, commodo dui ac, elementum erat. Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus.
-              Etiam pharetra est ac lorem molestie, id luctus mauris egestas. Cras mattis mi tellus, sed venenatis velit facilisis vitae. Nulla
-              scelerisque bibendum felis. Proin bibendum urna eu lacinia fermentum. In id magna in neque consequat auctor sed quis nulla. Donec
-              massa orci, iaculis vel nisl a, sollicitudin tempor neque. Praesent et risus ac quam tempor porta vitae a massa. Quisque vel augue ante.
-            </p>
-
-            <p className="text-muted-foreground">
-              Curabitur eget odio finibus, vestibulum turpis at, euismod dui. Pellentesque et turpis eget ante hendrerit faucibus. Nulla at maximus dui.
-              Maecenas at ipsum eget odio blandit vestibulum eget nec eros. Suspendisse faucibus efficitur lacus sit amet laoreet. Cras ullamcorper nibh
-              nec ex commodo venenatis. Cras rhoncus nulla augue, nec porttitor diam lobortis sed. Nullam suscipit non quam sed congue. Cras accumsan
-              augue eu quam iaculis, sagittis viverra urna tempus. In vestibulum faucibus nisi. Suspendisse potenti. In aliquet turpis ac ligula suscipit
-              condimentum. Duis et erat quis sem imperdiet vulputate. Curabitur lacinia quis ipsum vel ullamcorper. Curabitur vitae libero sed dui
-              malesuada eleifend.
-            </p>
-
-            <p>
-              Fusce a semper metus. Quisque facilisis eros nec ligula luctus, vitae semper lectus aliquet. Duis nec tristique libero. In tincidunt,
-              metus eu efficitur maximus, lacus nunc dapibus est, nec tincidunt lorem velit eu neque. Suspendisse sed augue commodo, pellentesque diam
-              et, varius enim. Donec nisi tellus, dignissim et sapien a, tempus laoreet erat. Quisque congue id est at consectetur.
-            </p>
-
-            <p className="text-muted-foreground">
-              Fusce non rutrum dui. Vivamus vitae mattis sem, vel dictum magna. Integer tellus diam, luctus in tellus vel, viverra cursus turpis. In hac
-              habitasse platea dictumst. Ut ullamcorper dapibus nulla, sed egestas ipsum tristique quis. Mauris et pulvinar elit, in egestas massa. Duis
-              sodales augue et condimentum interdum. Donec eleifend nunc at tellus hendrerit, porta condimentum dui tempus. Sed quis feugiat est.
-              Praesent vel finibus erat.
-            </p>
-
-            <p>
-              Integer efficitur metus eget tincidunt consectetur. Nam eu diam sagittis, elementum eros non, posuere risus. Orci varius natoque penatibus
-              et magnis dis parturient montes, nascetur ridiculus mus. Morbi dui tortor, ultricies eu nisi quis, consequat iaculis odio. Duis interdum
-              velit sollicitudin enim congue, eget lobortis ante gravida. Donec vitae mollis est. Etiam aliquam tempor pharetra. Phasellus faucibus nunc
-              et placerat laoreet. Cras laoreet, magna eget placerat venenatis, ligula dolor bibendum justo, at fermentum dolor quam sit amet leo.
-            </p>
-          </div>
-        </article>
-      </section>
+          {home?.goals && (
+            <div>
+              <h2 className="text-2xl font-semibold mb-3">Program Goals</h2>
+              <RichText content={home.goals} className="leading-7" />
+            </div>
+          )}
+        </section>
+      </div>
     </div>
   );
 }
+

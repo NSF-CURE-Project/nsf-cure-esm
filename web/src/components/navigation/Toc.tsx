@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { ThemeToggle } from "@/theme/ThemeToggle";
+import { usePathname } from "next/navigation";
 
 type TocItem = { id: string; text: string; level: number };
 
@@ -9,6 +10,8 @@ export default function Toc() {
   const [items, setItems] = useState<TocItem[]>([]);
   const [open, setOpen] = useState(true);
   const [drawer, setDrawer] = useState(false);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const pathname = usePathname();
 
   // Restore persisted state
   useEffect(() => {
@@ -21,7 +24,7 @@ export default function Toc() {
     localStorage.setItem("toc-open", String(open));
   }, [open]);
 
-  // Build TOC from headings
+  // 🔥 Build TOC from headings whenever the route changes
   useEffect(() => {
     const headings = Array.from(
       document.querySelectorAll("main h2, main h3")
@@ -29,35 +32,52 @@ export default function Toc() {
 
     const tocItems = headings.map((h) => {
       const id =
-        h.id || h.textContent?.toLowerCase().trim().replace(/\s+/g, "-") || "";
+        h.id ||
+        h.textContent?.toLowerCase().trim().replace(/\s+/g, "-") ||
+        "";
       h.id = id;
-      return { id, text: h.textContent || "", level: h.tagName === "H2" ? 2 : 3 };
+
+      return {
+        id,
+        text: h.textContent || "",
+        level: h.tagName === "H2" ? 2 : 3,
+      };
     });
 
     setItems(tocItems);
-  }, []);
+    setActiveId(tocItems[0]?.id ?? null); // optional: reset to first heading
+  }, [pathname]);
 
   // Drive layout width via CSS vars
   useEffect(() => {
     const layout = document.getElementById("layout");
     const content = document.getElementById("content");
     if (layout) layout.style.setProperty("--toc-w", open ? "20rem" : "0.75rem");
-    if (content) content.style.setProperty("--content-max", open ? "110ch" : "140ch");
+    if (content)
+      content.style.setProperty(
+        "--content-max",
+        open ? "110ch" : "140ch"
+      );
   }, [open]);
 
   // Active section highlight
-  const [activeId, setActiveId] = useState<string | null>(null);
   useEffect(() => {
     const obs = new IntersectionObserver(
       (entries) => {
-        entries.forEach((e) => e.isIntersecting && setActiveId((e.target as HTMLElement).id));
+        entries.forEach((e) => {
+          if (e.isIntersecting) {
+            setActiveId((e.target as HTMLElement).id);
+          }
+        });
       },
       { rootMargin: "0px 0px -70% 0px", threshold: [0, 1] }
     );
+
     items.forEach(({ id }) => {
       const el = document.getElementById(id);
       if (el) obs.observe(el);
     });
+
     return () => obs.disconnect();
   }, [items]);
 

@@ -18,30 +18,32 @@ type ClassItem   = {
 type Props = { classes: ClassItem[] };
 
 // ========= Accessors =========
-const getClassSlug   = (c: ClassItem)   => c.slug ?? c.classSlug ?? c.id ?? "";
+const getClassSlug   = (c: ClassItem)   => c.slug ?? (c as any).classSlug ?? (c as any).id ?? "";
 const getClassTitle  = (c: ClassItem)   => c.title ?? c.name ?? "Untitled Class";
 const getChapters    = (c: ClassItem): ChapterItem[] =>
   (c.chapters ?? c.modules ?? c.children ?? []) as ChapterItem[];
 
-const getChapterSlug  = (ch: ChapterItem) => ch.slug ?? ch.chapterSlug ?? ch.id ?? "";
+const getChapterSlug  = (ch: ChapterItem) => ch.slug ?? (ch as any).chapterSlug ?? (ch as any).id ?? "";
 const getChapterTitle = (ch: ChapterItem) => ch.title ?? ch.name ?? "Untitled Chapter";
 const getLessons      = (ch: ChapterItem): LessonItem[] =>
   (ch.lessons ?? ch.items ?? ch.children ?? []) as LessonItem[];
 
-const getLessonSlug   = (l: LessonItem) => l.slug ?? l.lessonSlug ?? l.id ?? "";
+const getLessonSlug   = (l: LessonItem) => l.slug ?? (l as any).lessonSlug ?? (l as any).id ?? "";
 const getLessonTitle  = (l: LessonItem) => l.title ?? l.name ?? "Untitled Lesson";
 
 export default function SidebarClient({ classes }: Props) {
   const pathname = usePathname();
 
-  // Parse /classes/[classSlug]/lessons/[lessonSlug]
-  const { currentClassSlug, currentLessonSlug } = useMemo(() => {
+  // Parse /classes/[classSlug]/lessons/[lessonSlug] AND /classes/[classSlug]/chapters/[chapterSlug]
+  const { currentClassSlug, currentLessonSlug, currentChapterSlug } = useMemo(() => {
     const parts = pathname.split("/").filter(Boolean);
-    const iClass = parts.indexOf("classes");
-    const iLesson = parts.indexOf("lessons");
+    const iClass   = parts.indexOf("classes");
+    const iLesson  = parts.indexOf("lessons");
+    const iChapter = parts.indexOf("chapters"); // ⬅️ NEW
     return {
-      currentClassSlug: iClass >= 0 ? parts[iClass + 1] : null,
-      currentLessonSlug: iLesson >= 0 ? parts[iLesson + 1] : null,
+      currentClassSlug:  iClass   >= 0 ? parts[iClass + 1]   : null,
+      currentLessonSlug: iLesson  >= 0 ? parts[iLesson + 1]  : null,
+      currentChapterSlug:iChapter >= 0 ? parts[iChapter + 1] : null, // ⬅️ NEW
     };
   }, [pathname]);
 
@@ -68,7 +70,7 @@ export default function SidebarClient({ classes }: Props) {
   const [openClasses, setOpenClasses] = useState<Record<string, boolean>>({});
   const [openChapters, setOpenChapters] = useState<Record<string, boolean>>({});
 
-  // Init + auto-open current route owner
+  // Init + auto-open current route owner (works for lesson and chapter overview)
   useEffect(() => {
     let cMap: Record<string, boolean> = {};
     let hMap: Record<string, boolean> = {};
@@ -77,11 +79,21 @@ export default function SidebarClient({ classes }: Props) {
       hMap = JSON.parse(localStorage.getItem(STORAGE_CHAPTERS) || "{}") || {};
     } catch {}
 
-    const owner = currentLessonSlug ? lessonOwner[currentLessonSlug] : null;
+    const ownerFromLesson = currentLessonSlug ? lessonOwner[currentLessonSlug] : null;
     const firstClassSlug = classes[0] ? getClassSlug(classes[0]) : null;
 
-    const defaultClass = currentClassSlug || owner?.classSlug || firstClassSlug;
-    const defaultChapter = owner ? `${owner.classSlug}/${owner.chapterSlug}` : null;
+    const fallbackClassFromChapter = currentClassSlug && currentChapterSlug ? currentClassSlug : null;
+    const defaultClass = currentClassSlug || ownerFromLesson?.classSlug || fallbackClassFromChapter || firstClassSlug;
+
+    // open the owning chapter if:
+    //   a) we’re on a lesson page (ownerFromLesson), or
+    //   b) we’re on a chapter overview page (currentChapterSlug)
+    const defaultChapter =
+      ownerFromLesson
+        ? `${ownerFromLesson.classSlug}/${ownerFromLesson.chapterSlug}`
+        : (currentClassSlug && currentChapterSlug)
+          ? `${currentClassSlug}/${currentChapterSlug}`
+          : null;
 
     if (defaultClass && cMap[defaultClass] !== true) cMap[defaultClass] = true;
     if (defaultChapter && hMap[defaultChapter] !== true) hMap[defaultChapter] = true;
@@ -150,6 +162,9 @@ export default function SidebarClient({ classes }: Props) {
                     const chKey = `${cSlug}/${chSlug}`;
                     const chOpen = !!openChapters[chKey];
 
+                    // active flags
+                    const chapterIsActive = currentClassSlug === cSlug && currentChapterSlug === chSlug;
+
                     return (
                       <li key={chSlug}>
                         {/* Chapter header */}
@@ -169,7 +184,7 @@ export default function SidebarClient({ classes }: Props) {
                           <span>{getChapterTitle(ch)}</span>
                         </button>
 
-                        {/* Lessons (collapsible) */}
+                        {/* Lessons + Overview (collapsible) */}
                         <div
                           id={`panel-ch-${chKey}`}
                           className={[
@@ -178,6 +193,22 @@ export default function SidebarClient({ classes }: Props) {
                           ].join(" ")}
                         >
                           <ul className="min-h-0 overflow-hidden pl-6 py-1 space-y-1">
+                            {/* ⬇️ NEW: Overview link (first item) */}
+                            <li key={`${chSlug}__overview`}>
+                              <Link
+                                href={`/classes/${cSlug}/chapters/${chSlug}`}
+                                className={[
+                                  "block rounded-md px-2 py-1 transition-colors",
+                                  chapterIsActive
+                                    ? "bg-accent text-accent-foreground font-semibold"
+                                    : "text-muted-foreground hover:bg-accent/20 hover:text-accent-foreground",
+                                ].join(" ")}
+                              >
+                                Overview
+                              </Link>
+                            </li>
+
+                            {/* Lessons */}
                             {getLessons(ch).map((ls) => {
                               const lsSlug = getLessonSlug(ls);
                               if (!lsSlug) return null;
