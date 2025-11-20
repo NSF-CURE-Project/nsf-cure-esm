@@ -6,6 +6,11 @@
 :root {
   --nav-h: 4rem;        /* navbar height (h-16) */
   --panel-gap: 0.75rem; /* space between navbar and side panels */
+
+  /* Layout tokens */
+  --content-max: 200ch; /* center column max width */
+  --toc-w: 18rem;       /* TOC column width on desktop when open */
+  --toc-gap: 2rem;      /* gap between main content and TOC on desktop */
 }
 
 /* ---- Design tokens (light) ---- */
@@ -17,10 +22,10 @@
   --ring: 215 20.2% 65.1%;
   --radius: 0.5rem;
 
-  /* CPP brand colors */
-  --cpp-green: 156 100% 16%;   /* #005030 */
-  --cpp-gold: 45 100% 55%;     /* #FFB81C */
-  --cpp-avocado: 90 55% 60%;   /* #A4D65E */
+  /* CPP brand colors (base HSLs) */
+  --cpp-green: 156 100% 16%;  /* #005030 */
+  --cpp-gold: 45 100% 55%;    /* #FFB81C */
+  --cpp-avocado: 90 55% 60%;  /* #A4D65E */
 
   /* Themed roles */
   --primary: var(--cpp-green);
@@ -29,8 +34,10 @@
   --secondary: var(--cpp-gold);
   --secondary-foreground: 222.2 47.4% 11.2%;
 
-  --accent: var(--cpp-avocado);
-  --accent-foreground: 222.2 47.4% 11.2%;
+  /* Cleaner, deeper highlight green (used by bg-accent, etc.) */
+  /* a bit darker/more muted than avocado so pills don’t look neon */
+  --accent: 156 40% 32%;
+  --accent-foreground: 210 40% 98%;
 
   /* Supporting colors */
   --muted: 210 40% 96.1%;
@@ -55,13 +62,14 @@
   --cpp-gold: 45 100% 60%;
   --cpp-avocado: 90 45% 65%;
 
+  /* In dark mode, pills/buttons still use a green accent but lighter */
   --primary: var(--cpp-gold);
   --primary-foreground: 222.2 47.4% 11.2%;
 
   --secondary: var(--cpp-green);
   --secondary-foreground: 210 40% 98%;
 
-  --accent: var(--cpp-avocado);
+  --accent: 156 40% 42%;
   --accent-foreground: 210 40% 98%;
 
   --muted: 217.2 32.6% 17.5%;
@@ -80,7 +88,7 @@
   * {
     border-width: 0;
     border-style: solid;
-    border-color: hsl(var(--border)); /* sets color for when you explicitly add border utilities */
+    border-color: hsl(var(--border)); /* used when you add Tailwind `border` utilities */
   }
 
   html {
@@ -104,7 +112,7 @@
     scroll-margin-top: calc(var(--nav-h) + 0.75rem);
   }
 
-  /* Selection color tuned to brand */
+  /* Selection color tuned to accent */
   ::selection {
     background-color: hsl(var(--accent) / 0.25);
   }
@@ -134,4 +142,3 @@
     }
   }
 }
-

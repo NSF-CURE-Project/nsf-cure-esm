@@ -11,8 +11,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className="
         min-h-dvh bg-background text-foreground
         grid grid-cols-1
-        lg:grid-cols-[18rem_minmax(0,1fr)_var(--toc-w,20rem)]
-        lg:gap-[var(--toc-gap,2rem)]
+        lg:grid-cols-[18rem_minmax(0,1fr)_var(--toc-w)]
+        lg:gap-[var(--toc-gap)]
       "
       style={{
         // content row (1fr) + footer row (auto)
@@ -35,20 +35,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <main className="min-w-0 overflow-x-hidden p-6 lg:px-8 lg:row-start-1">
         <div
           id="content"
-          className="mx-auto w-full max-w-[var(--content-max,110ch)] transition-[max-width] duration-300"
+          className="mx-auto w-full transition-[max-width] duration-300"
+          // 👆 no max-w here so you can clearly see the middle column grow/shrink
         >
           {children}
         </div>
       </main>
 
-      {/* RIGHT: TOC (row 1, sticky in its column) */}
-      <aside className="hidden lg:block">
-        <div className="sticky top-[var(--nav-h)] h-[calc(100dvh-var(--nav-h))] overflow-hidden">
-          <div className="h-full overflow-y-auto p-4 border-l bg-muted/20">
-            <Toc />
-          </div>
-        </div>
-      </aside>
+      {/* RIGHT: TOC COLUMN (row 1) */}
+      <div className="hidden lg:block lg:row-start-1">
+        <Toc />
+      </div>
 
       {/* FOOTER (row 2) — spans ALL columns */}
       <footer className="border-t bg-background/80 backdrop-blur py-8 px-6 text-center text-sm text-muted-foreground col-span-full lg:col-span-3 lg:row-start-2">
@@ -57,5 +54,3 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     </div>
   );
 }
-
-

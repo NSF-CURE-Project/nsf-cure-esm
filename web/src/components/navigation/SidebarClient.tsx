@@ -4,73 +4,95 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
 
-// ========= Shapes (loose) =========
-type LessonItem  = { slug?: string; title?: string; name?: string } & Record<string, any>;
-type ChapterItem = {
-  slug?: string; title?: string; name?: string;
-  lessons?: LessonItem[]; items?: LessonItem[]; children?: LessonItem[];
+type LessonItem = {
+  slug?: string;
+  title?: string;
+  name?: string;
 } & Record<string, any>;
-type ClassItem   = {
-  slug?: string; title?: string; name?: string;
-  chapters?: ChapterItem[]; modules?: ChapterItem[]; children?: ChapterItem[];
+
+type ChapterItem = {
+  slug?: string;
+  title?: string;
+  name?: string;
+  lessons?: LessonItem[];
+  items?: LessonItem[];
+  children?: LessonItem[];
+} & Record<string, any>;
+
+type ClassItem = {
+  slug?: string;
+  title?: string;
+  name?: string;
+  chapters?: ChapterItem[];
+  modules?: ChapterItem[];
+  children?: ChapterItem[];
 } & Record<string, any>;
 
 type Props = { classes: ClassItem[] };
 
-// ========= Accessors =========
-const getClassSlug   = (c: ClassItem)   => c.slug ?? (c as any).classSlug ?? (c as any).id ?? "";
-const getClassTitle  = (c: ClassItem)   => c.title ?? c.name ?? "Untitled Class";
-const getChapters    = (c: ClassItem): ChapterItem[] =>
+// ---------- Accessors ----------
+const getClassSlug = (c: ClassItem) =>
+  c.slug ?? (c as any).classSlug ?? (c as any).id ?? "";
+const getClassTitle = (c: ClassItem) => c.title ?? c.name ?? "Untitled Class";
+const getChapters = (c: ClassItem): ChapterItem[] =>
   (c.chapters ?? c.modules ?? c.children ?? []) as ChapterItem[];
 
-const getChapterSlug  = (ch: ChapterItem) => ch.slug ?? (ch as any).chapterSlug ?? (ch as any).id ?? "";
-const getChapterTitle = (ch: ChapterItem) => ch.title ?? ch.name ?? "Untitled Chapter";
-const getLessons      = (ch: ChapterItem): LessonItem[] =>
+const getChapterSlug = (ch: ChapterItem) =>
+  ch.slug ?? (ch as any).chapterSlug ?? (ch as any).id ?? "";
+const getChapterTitle = (ch: ChapterItem) =>
+  ch.title ?? ch.name ?? "Untitled Chapter";
+const getLessons = (ch: ChapterItem): LessonItem[] =>
   (ch.lessons ?? ch.items ?? ch.children ?? []) as LessonItem[];
 
-const getLessonSlug   = (l: LessonItem) => l.slug ?? (l as any).lessonSlug ?? (l as any).id ?? "";
-const getLessonTitle  = (l: LessonItem) => l.title ?? l.name ?? "Untitled Lesson";
+const getLessonSlug = (l: LessonItem) =>
+  l.slug ?? (l as any).lessonSlug ?? (l as any).id ?? "";
+const getLessonTitle = (l: LessonItem) =>
+  l.title ?? l.name ?? "Untitled Lesson";
 
 export default function SidebarClient({ classes }: Props) {
   const pathname = usePathname();
 
-  // Parse /classes/[classSlug]/lessons/[lessonSlug] AND /classes/[classSlug]/chapters/[chapterSlug]
-  const { currentClassSlug, currentLessonSlug, currentChapterSlug } = useMemo(() => {
-    const parts = pathname.split("/").filter(Boolean);
-    const iClass   = parts.indexOf("classes");
-    const iLesson  = parts.indexOf("lessons");
-    const iChapter = parts.indexOf("chapters"); // ⬅️ NEW
-    return {
-      currentClassSlug:  iClass   >= 0 ? parts[iClass + 1]   : null,
-      currentLessonSlug: iLesson  >= 0 ? parts[iLesson + 1]  : null,
-      currentChapterSlug:iChapter >= 0 ? parts[iChapter + 1] : null, // ⬅️ NEW
-    };
-  }, [pathname]);
+  // Parse /classes/[classSlug]/(chapters|lessons)/[slug]
+  const { currentClassSlug, currentLessonSlug, currentChapterSlug } =
+    useMemo(() => {
+      const parts = pathname.split("/").filter(Boolean);
+      const iClass = parts.indexOf("classes");
+      const iLesson = parts.indexOf("lessons");
+      const iChapter = parts.indexOf("chapters");
+      return {
+        currentClassSlug: iClass >= 0 ? parts[iClass + 1] : null,
+        currentLessonSlug: iLesson >= 0 ? parts[iLesson + 1] : null,
+        currentChapterSlug: iChapter >= 0 ? parts[iChapter + 1] : null,
+      };
+    }, [pathname]);
 
   // lessonSlug -> { classSlug, chapterSlug }
   const lessonOwner = useMemo(() => {
     const map: Record<string, { classSlug: string; chapterSlug: string }> = {};
     for (const cls of classes ?? []) {
       const cSlug = getClassSlug(cls);
+      if (!cSlug) continue;
       for (const ch of getChapters(cls)) {
         const chSlug = getChapterSlug(ch);
+        if (!chSlug) continue;
         for (const ls of getLessons(ch)) {
           const lSlug = getLessonSlug(ls);
-          if (cSlug && chSlug && lSlug) map[lSlug] = { classSlug: cSlug, chapterSlug: chSlug };
+          if (lSlug) {
+            map[lSlug] = { classSlug: cSlug, chapterSlug: chSlug };
+          }
         }
       }
     }
     return map;
   }, [classes]);
 
-  // Persisted open state
-  const STORAGE_CLASSES  = "sidebar:open-classes";
+  const STORAGE_CLASSES = "sidebar:open-classes";
   const STORAGE_CHAPTERS = "sidebar:open-chapters";
 
   const [openClasses, setOpenClasses] = useState<Record<string, boolean>>({});
   const [openChapters, setOpenChapters] = useState<Record<string, boolean>>({});
 
-  // Init + auto-open current route owner (works for lesson and chapter overview)
+  // Initial open state + auto-open current class/chapter
   useEffect(() => {
     let cMap: Record<string, boolean> = {};
     let hMap: Record<string, boolean> = {};
@@ -79,24 +101,29 @@ export default function SidebarClient({ classes }: Props) {
       hMap = JSON.parse(localStorage.getItem(STORAGE_CHAPTERS) || "{}") || {};
     } catch {}
 
-    const ownerFromLesson = currentLessonSlug ? lessonOwner[currentLessonSlug] : null;
+    const ownerFromLesson = currentLessonSlug
+      ? lessonOwner[currentLessonSlug]
+      : null;
     const firstClassSlug = classes[0] ? getClassSlug(classes[0]) : null;
 
-    const fallbackClassFromChapter = currentClassSlug && currentChapterSlug ? currentClassSlug : null;
-    const defaultClass = currentClassSlug || ownerFromLesson?.classSlug || fallbackClassFromChapter || firstClassSlug;
+    const fallbackClassFromChapter =
+      currentClassSlug && currentChapterSlug ? currentClassSlug : null;
 
-    // open the owning chapter if:
-    //   a) we’re on a lesson page (ownerFromLesson), or
-    //   b) we’re on a chapter overview page (currentChapterSlug)
-    const defaultChapter =
-      ownerFromLesson
-        ? `${ownerFromLesson.classSlug}/${ownerFromLesson.chapterSlug}`
-        : (currentClassSlug && currentChapterSlug)
-          ? `${currentClassSlug}/${currentChapterSlug}`
-          : null;
+    const defaultClass =
+      currentClassSlug ||
+      ownerFromLesson?.classSlug ||
+      fallbackClassFromChapter ||
+      firstClassSlug;
+
+    const defaultChapter = ownerFromLesson
+      ? `${ownerFromLesson.classSlug}/${ownerFromLesson.chapterSlug}`
+      : currentClassSlug && currentChapterSlug
+      ? `${currentClassSlug}/${currentChapterSlug}`
+      : null;
 
     if (defaultClass && cMap[defaultClass] !== true) cMap[defaultClass] = true;
-    if (defaultChapter && hMap[defaultChapter] !== true) hMap[defaultChapter] = true;
+    if (defaultChapter && hMap[defaultChapter] !== true)
+      hMap[defaultChapter] = true;
     if (!Object.keys(cMap).length && defaultClass) cMap[defaultClass] = true;
 
     setOpenClasses(cMap);
@@ -104,7 +131,7 @@ export default function SidebarClient({ classes }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname, JSON.stringify(lessonOwner), classes?.length]);
 
-  // Persist on change
+  // Persist open state
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_CLASSES, JSON.stringify(openClasses));
@@ -130,7 +157,7 @@ export default function SidebarClient({ classes }: Props) {
 
           return (
             <li key={cSlug}>
-              {/* 🟡 Class header (Cal Poly Gold) */}
+              {/* Class header */}
               <button
                 type="button"
                 aria-expanded={classOpen}
@@ -139,7 +166,10 @@ export default function SidebarClient({ classes }: Props) {
                 className="group flex w-full items-center gap-2 px-4 py-2 font-semibold text-[#FFB81C] transition-colors hover:bg-[#FFB81C]/10 hover:text-[#FFB81C]"
               >
                 <span
-                  className={["inline-block transition-transform", classOpen ? "rotate-90" : ""].join(" ")}
+                  className={[
+                    "inline-block transition-transform",
+                    classOpen ? "rotate-90" : "",
+                  ].join(" ")}
                   aria-hidden="true"
                 >
                   ▶
@@ -152,84 +182,124 @@ export default function SidebarClient({ classes }: Props) {
                 id={`panel-class-${cSlug}`}
                 className={[
                   "grid transition-[grid-template-rows,opacity] duration-200 ease-out",
-                  classOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-70",
+                  classOpen
+                    ? "grid-rows-[1fr] opacity-100"
+                    : "grid-rows-[0fr] opacity-70",
                 ].join(" ")}
               >
-                <ul className="min-h-0 overflow-hidden pl-6 pr-2 space-y-2">
+                <ul className="min-h-0 overflow-hidden pl-5 pr-2 space-y-1">
                   {getChapters(cls).map((ch) => {
                     const chSlug = getChapterSlug(ch);
                     if (!chSlug) return null;
                     const chKey = `${cSlug}/${chSlug}`;
                     const chOpen = !!openChapters[chKey];
 
-                    // active flags
-                    const chapterIsActive = currentClassSlug === cSlug && currentChapterSlug === chSlug;
+                    const lessons = getLessons(ch);
+
+                    // Overview is active if we're on /classes/[class]/chapters/[chapter]
+                    const chapterOverviewActive =
+                      currentClassSlug === cSlug &&
+                      currentChapterSlug === chSlug;
+
+                    // Any lesson in this chapter is active?
+                    const chapterHasActiveLesson = lessons.some(
+                      (ls) => getLessonSlug(ls) === currentLessonSlug
+                    );
+
+                    // Gold bar active for overview OR any of its lessons
+                    const chapterBarActive =
+                      chapterOverviewActive || chapterHasActiveLesson;
 
                     return (
                       <li key={chSlug}>
-                        {/* Chapter header */}
-                        <button
-                          type="button"
-                          aria-expanded={chOpen}
-                          aria-controls={`panel-ch-${chKey}`}
-                          onClick={() => toggleChapter(cSlug, chSlug)}
-                          className="group flex w-full items-center gap-2 px-2 py-1 font-medium rounded-md transition-colors hover:bg-accent/25 hover:text-accent-foreground"
-                        >
-                          <span
-                            className={["inline-block transition-transform", chOpen ? "rotate-90" : ""].join(" ")}
-                            aria-hidden="true"
-                          >
-                            ▶
-                          </span>
-                          <span>{getChapterTitle(ch)}</span>
-                        </button>
-
-                        {/* Lessons + Overview (collapsible) */}
                         <div
-                          id={`panel-ch-${chKey}`}
                           className={[
-                            "grid transition-[grid-template-rows,opacity] duration-200 ease-out",
-                            chOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-70",
+                            "relative pl-2 border-l",
+                            chapterBarActive
+                              ? "border-l-2 border-[#FFB81C]"
+                              : "border-border/30",
                           ].join(" ")}
                         >
-                          <ul className="min-h-0 overflow-hidden pl-6 py-1 space-y-1">
-                            {/* ⬇️ NEW: Overview link (first item) */}
-                            <li key={`${chSlug}__overview`}>
+                          {/* Chapter header (no active styling, just hover) */}
+                          <button
+                            type="button"
+                            aria-expanded={chOpen}
+                            aria-controls={`panel-ch-${chKey}`}
+                            onClick={() => toggleChapter(cSlug, chSlug)}
+                            className={[
+                              "group flex w-full items-center gap-2 px-2 py-1 font-medium rounded-md transition-colors",
+                              "hover:bg-accent/25 hover:text-accent-foreground",
+                            ].join(" ")}
+                          >
+                            <span
+                              className={[
+                                "inline-block transition-transform",
+                                chOpen ? "rotate-90" : "",
+                              ].join(" ")}
+                              aria-hidden="true"
+                            >
+                              ▶
+                            </span>
+                            <span>{getChapterTitle(ch)}</span>
+                          </button>
+
+                          {/* Chapter Overview — compact + divider, only when open */}
+                          {chOpen && (
+                            <div className="pl-4 mt-1">
                               <Link
                                 href={`/classes/${cSlug}/chapters/${chSlug}`}
                                 className={[
-                                  "block rounded-md px-2 py-1 transition-colors",
-                                  chapterIsActive
-                                    ? "bg-accent text-accent-foreground font-semibold"
-                                    : "text-muted-foreground hover:bg-accent/20 hover:text-accent-foreground",
+                                  "inline-block w-fit px-3 py-0.5 text-sm rounded-md border transition-colors",
+                                  chapterOverviewActive
+                                    ? "bg-accent text-accent-foreground border-accent"
+                                    : "text-muted-foreground border-border hover:bg-accent/10 hover:text-accent-foreground",
                                 ].join(" ")}
                               >
-                                Overview
+                                Chapter Overview
                               </Link>
-                            </li>
 
-                            {/* Lessons */}
-                            {getLessons(ch).map((ls) => {
-                              const lsSlug = getLessonSlug(ls);
-                              if (!lsSlug) return null;
-                              const active = lsSlug === currentLessonSlug;
-                              return (
-                                <li key={lsSlug}>
-                                  <Link
-                                    href={`/classes/${cSlug}/lessons/${lsSlug}`}
-                                    className={[
-                                      "block rounded-md px-2 py-1 transition-colors",
-                                      active
-                                        ? "bg-accent text-accent-foreground font-semibold"
-                                        : "text-muted-foreground hover:bg-accent/20 hover:text-accent-foreground",
-                                    ].join(" ")}
-                                  >
-                                    {getLessonTitle(ls)}
-                                  </Link>
+                              <div className="mt-2 h-px w-full bg-border" />
+                            </div>
+                          )}
+
+                          {/* Lessons */}
+                          <div
+                            id={`panel-ch-${chKey}`}
+                            className={[
+                              "grid transition-[grid-template-rows,opacity] duration-200 ease-out pl-4",
+                              chOpen
+                                ? "grid-rows-[1fr] opacity-100"
+                                : "grid-rows-[0fr] opacity-70",
+                            ].join(" ")}
+                          >
+                            <ul className="min-h-0 overflow-hidden py-0.5 space-y-1">
+                              {lessons.map((ls) => {
+                                const lsSlug = getLessonSlug(ls);
+                                if (!lsSlug) return null;
+                                const active = lsSlug === currentLessonSlug;
+                                return (
+                                  <li key={lsSlug}>
+                                    <Link
+                                      href={`/classes/${cSlug}/lessons/${lsSlug}`}
+                                      className={[
+                                        "block rounded-md px-2 py-1 transition-colors",
+                                        active
+                                          ? "bg-accent text-accent-foreground font-semibold"
+                                          : "text-muted-foreground hover:bg-accent/20 hover:text-accent-foreground",
+                                      ].join(" ")}
+                                    >
+                                      {getLessonTitle(ls)}
+                                    </Link>
+                                  </li>
+                                );
+                              })}
+                              {lessons.length === 0 && (
+                                <li className="text-xs text-muted-foreground px-2 py-1">
+                                  No lessons yet.
                                 </li>
-                              );
-                            })}
-                          </ul>
+                              )}
+                            </ul>
+                          </div>
                         </div>
                       </li>
                     );
@@ -243,3 +313,4 @@ export default function SidebarClient({ classes }: Props) {
     </nav>
   );
 }
+

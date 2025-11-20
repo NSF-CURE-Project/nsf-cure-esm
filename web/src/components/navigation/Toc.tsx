@@ -24,7 +24,7 @@ export default function Toc() {
     localStorage.setItem("toc-open", String(open));
   }, [open]);
 
-  // 🔥 Build TOC from headings whenever the route changes
+  // Build TOC from headings whenever the route changes
   useEffect(() => {
     const headings = Array.from(
       document.querySelectorAll("main h2, main h3")
@@ -45,19 +45,23 @@ export default function Toc() {
     });
 
     setItems(tocItems);
-    setActiveId(tocItems[0]?.id ?? null); // optional: reset to first heading
+    setActiveId(tocItems[0]?.id ?? null);
   }, [pathname]);
 
-  // Drive layout width via CSS vars
+  // Drive layout via CSS variables
   useEffect(() => {
     const layout = document.getElementById("layout");
-    const content = document.getElementById("content");
-    if (layout) layout.style.setProperty("--toc-w", open ? "20rem" : "0.75rem");
-    if (content)
-      content.style.setProperty(
-        "--content-max",
-        open ? "110ch" : "140ch"
-      );
+    if (!layout) return;
+
+    if (open) {
+      // TOC open → normal width & gap
+      layout.style.setProperty("--toc-w", "18rem");
+      layout.style.setProperty("--toc-gap", "2rem");
+    } else {
+      // TOC closed → collapse right column, no gap
+      layout.style.setProperty("--toc-w", "0rem");
+      layout.style.setProperty("--toc-gap", "0rem");
+    }
   }, [open]);
 
   // Active section highlight
@@ -148,17 +152,15 @@ export default function Toc() {
         </div>
       </div>
 
-      {/* Desktop TOC */}
-      <aside
-        className={`relative hidden lg:block transition-[width] duration-200 ${
-          open ? "w-full" : "w-12"
-        }`}
+      {/* Desktop TOC panel (right column) */}
+      <div
+        className="relative hidden h-[calc(100dvh-var(--nav-h))] lg:block"
         aria-label="Table of contents"
       >
-        {/* Toggle button */}
+        {/* Toggle button hanging over the content edge */}
         <button
           className={[
-            "absolute top-2 z-10 inline-flex h-7 w-7 items-center justify-center rounded-full bg-background text-xs transition-all duration-200",
+            "absolute top-2 z-10 inline-flex h-7 w-7 items-center justify-center rounded-full bg-background text-xs shadow transition-all duration-200",
             open ? "-left-3" : "-left-6",
           ].join(" ")}
           onClick={() => setOpen((v) => !v)}
@@ -169,20 +171,19 @@ export default function Toc() {
           {open ? "→" : "←"}
         </button>
 
-        {/* Sticky section */}
         <div
           id="desktop-toc"
-          className="sticky top-[var(--nav-h)] h-[calc(100dvh-var(--nav-h))] overflow-hidden"
+          className="sticky top-[var(--nav-h)] h-full overflow-hidden"
         >
           <div
-            className={`h-full overflow-y-auto transition-opacity ${
+            className={`h-full overflow-y-auto border-l bg-background p-4 transition-opacity ${
               open ? "opacity-100" : "pointer-events-none opacity-0"
             }`}
           >
-            <div className="sticky top-0 z-10 px-4 py-3">
+            <div className="sticky top-0 z-10 pb-2">
               <p className="mb-2 font-semibold">On this page</p>
             </div>
-            <nav className="text-sm px-4 pb-6">
+            <nav className="text-sm">
               {TocList}
               <div className="mt-6">
                 <ThemeToggle />
@@ -190,7 +191,7 @@ export default function Toc() {
             </nav>
           </div>
         </div>
-      </aside>
+      </div>
     </>
   );
 }
