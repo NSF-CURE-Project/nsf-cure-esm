@@ -3,6 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useTheme } from "next-themes";
+import { Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
 
 export default function Navbar() {
   const { theme, systemTheme } = useTheme();
@@ -56,6 +58,18 @@ export default function Navbar() {
 
   {/* Optional: right-side cluster (theme toggle, etc.) */}
   <div className="ml-auto flex items-center gap-3">
+    <form
+      role="search"
+      className="relative hidden md:block w-52 lg:w-72"
+      action="/search"
+    >
+      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+      <Input
+        name="q"
+        placeholder="Search program..."
+        className="h-10 rounded-lg border-border/80 bg-muted/40 pl-9 pr-4 text-sm shadow-sm transition focus-visible:ring-2 focus-visible:ring-primary/50"
+      />
+    </form>
     {/* <ThemeToggle /> */}
   </div>
 </nav>

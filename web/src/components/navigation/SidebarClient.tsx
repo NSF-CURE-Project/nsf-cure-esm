@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
+import { ChevronRight } from "lucide-react";
 
 type LessonItem = {
   slug?: string;
@@ -163,18 +164,16 @@ export default function SidebarClient({ classes }: Props) {
                 aria-expanded={classOpen}
                 aria-controls={`panel-class-${cSlug}`}
                 onClick={() => toggleClass(cSlug)}
-                className="group flex w-full items-center gap-2 px-4 py-2 font-semibold text-[#FFB81C] transition-colors hover:bg-[#FFB81C]/10 hover:text-[#FFB81C]"
+                className="group flex w-full items-center justify-between gap-2 px-4 py-2 text-base font-semibold text-primary transition-colors hover:bg-primary/10 hover:text-primary"
               >
-                <span
+                <span>{getClassTitle(cls)}</span>
+                <ChevronRight
                   className={[
-                    "inline-block transition-transform",
+                    "h-3 w-3 transition-transform",
                     classOpen ? "rotate-90" : "",
                   ].join(" ")}
                   aria-hidden="true"
-                >
-                  ▶
-                </span>
-                <span>{getClassTitle(cls)}</span>
+                />
               </button>
 
               {/* Chapters (collapsible) */}
@@ -196,17 +195,14 @@ export default function SidebarClient({ classes }: Props) {
 
                     const lessons = getLessons(ch);
 
-                    // Overview is active if we're on /classes/[class]/chapters/[chapter]
                     const chapterOverviewActive =
                       currentClassSlug === cSlug &&
                       currentChapterSlug === chSlug;
 
-                    // Any lesson in this chapter is active?
                     const chapterHasActiveLesson = lessons.some(
                       (ls) => getLessonSlug(ls) === currentLessonSlug
                     );
 
-                    // Gold bar active for overview OR any of its lessons
                     const chapterBarActive =
                       chapterOverviewActive || chapterHasActiveLesson;
 
@@ -220,30 +216,28 @@ export default function SidebarClient({ classes }: Props) {
                               : "border-border/30",
                           ].join(" ")}
                         >
-                          {/* Chapter header (no active styling, just hover) */}
+                          {/* Chapter header */}
                           <button
                             type="button"
                             aria-expanded={chOpen}
                             aria-controls={`panel-ch-${chKey}`}
                             onClick={() => toggleChapter(cSlug, chSlug)}
                             className={[
-                              "group flex w-full items-center gap-2 px-2 py-1 font-medium rounded-md transition-colors",
+                              "group flex w-full items-center justify-between gap-2 px-2 py-1 font-medium rounded-md transition-colors",
                               "hover:bg-accent/25 hover:text-accent-foreground",
                             ].join(" ")}
                           >
-                            <span
+                            <span>{getChapterTitle(ch)}</span>
+                            <ChevronRight
                               className={[
-                                "inline-block transition-transform",
+                                "h-3 w-3 transition-transform",
                                 chOpen ? "rotate-90" : "",
                               ].join(" ")}
                               aria-hidden="true"
-                            >
-                              ▶
-                            </span>
-                            <span>{getChapterTitle(ch)}</span>
+                            />
                           </button>
 
-                          {/* Chapter Overview — compact + divider, only when open */}
+                          {/* Chapter Overview — only when open */}
                           {chOpen && (
                             <div className="pl-4 mt-1">
                               <Link
@@ -313,4 +307,3 @@ export default function SidebarClient({ classes }: Props) {
     </nav>
   );
 }
-

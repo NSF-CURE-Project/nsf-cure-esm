@@ -1,56 +1,66 @@
 // SERVER component (no "use client")
-import Sidebar from "@/components/navigation/Sidebar";
+import React from "react";
+import { cookies } from "next/headers";
+
+import {
+  SidebarProvider,
+  SidebarInset,
+} from "@/components/ui/sidebar";          // ⬅️ Provider + inset
+
+import AppSidebar from "@/components/admin-panel/sidebar";
 import Toc from "@/components/navigation/Toc";
 import Footer from "@/components/Footer";
-import React from "react";
+import { getClassesTree } from "@/lib/strapiSdk/root";
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  // restore open/closed state if you want
+  const cookieStore = await cookies();
+  const defaultOpen = cookieStore.get("sidebar_state")?.value === "true";
+
+  const classes = await getClassesTree();
+
   return (
-    <div
-      id="layout"
-      className="
-        min-h-dvh bg-background text-foreground
-        grid grid-cols-1
-        lg:grid-cols-[18rem_minmax(0,1fr)_var(--toc-w)]
-        lg:gap-[var(--toc-gap)]
-      "
-      style={{
-        // content row (1fr) + footer row (auto)
-        gridTemplateRows: "1fr auto",
-      }}
-    >
-      {/* LEFT: SIDEBAR (row 1) */}
-      <aside
-        aria-label="Primary navigation"
-        className="hidden lg:block border-r p-4 lg:row-start-1"
-      >
-        <div className="sticky top-[var(--nav-h)]">
-          <div className="max-h-[calc(100dvh-var(--nav-h)-2rem)] overflow-y-auto">
-            <Sidebar />
+    <SidebarProvider defaultOpen={true}>
+      <div className="min-h-dvh bg-background text-foreground flex">
+        {/* LEFT: Salimi sidebar with your dynamic items */}
+        <AppSidebar classes={classes} />
+
+        {/* RIGHT: main + TOC lives in SidebarInset so it shifts when collapsed */}
+        <SidebarInset className="flex-1">
+          <div
+            id="layout"
+            className="
+              min-h-dvh
+              grid grid-cols-1
+              lg:grid-cols-[minmax(0,1.5fr)_minmax(0,var(--toc-w,14rem))]
+              lg:gap-[var(--toc-gap,1.25rem)]
+            "
+            style={{ gridTemplateRows: "1fr auto" }}
+          >
+            <main className="min-w-0 overflow-x-hidden p-6 lg:px-8 lg:row-start-1">
+              <div
+                id="content"
+                className="mx-auto w-full max-w-[var(--content-max,100ch)] transition-[max-width] duration-300"
+              >
+                {children}
+              </div>
+            </main>
+
+            <div className="hidden lg:block lg:row-start-1 relative">
+              <Toc />
+            </div>
+
+            <footer className="border-t bg-background/80 backdrop-blur py-8 px-6 text-center text-sm text-muted-foreground col-span-full lg:row-start-2">
+              <Footer />
+            </footer>
           </div>
-        </div>
-      </aside>
+        </SidebarInset>
 
-      {/* CENTER: MAIN (row 1) */}
-      <main className="min-w-0 overflow-x-hidden p-6 lg:px-8 lg:row-start-1">
-        <div
-          id="content"
-          className="mx-auto w-full transition-[max-width] duration-300"
-          // 👆 no max-w here so you can clearly see the middle column grow/shrink
-        >
-          {children}
-        </div>
-      </main>
-
-      {/* RIGHT: TOC COLUMN (row 1) */}
-      <div className="hidden lg:block lg:row-start-1">
-        <Toc />
       </div>
-
-      {/* FOOTER (row 2) — spans ALL columns */}
-      <footer className="border-t bg-background/80 backdrop-blur py-8 px-6 text-center text-sm text-muted-foreground col-span-full lg:col-span-3 lg:row-start-2">
-        <Footer />
-      </footer>
-    </div>
+    </SidebarProvider>
   );
 }

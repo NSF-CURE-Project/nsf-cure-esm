@@ -12,6 +12,10 @@ export default function Toc() {
   const [drawer, setDrawer] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
   const pathname = usePathname();
+  const TOC_OPEN_WIDTH = "14rem";
+  const TOC_OPEN_GAP = "1.25rem";
+  const TOC_CLOSED_WIDTH = "0px";
+  const TOC_CLOSED_GAP = "0px";
 
   // Restore persisted state
   useEffect(() => {
@@ -48,21 +52,11 @@ export default function Toc() {
     setActiveId(tocItems[0]?.id ?? null);
   }, [pathname]);
 
-  // Drive layout via CSS variables
+  // Drive layout via CSS variables (consumed in #layout grid)
   useEffect(() => {
-    const layout = document.getElementById("layout");
-    if (!layout) return;
-
-    if (open) {
-      // TOC open → normal width & gap
-      layout.style.setProperty("--toc-w", "18rem");
-      layout.style.setProperty("--toc-gap", "2rem");
-    } else {
-      // TOC closed → collapse right column, no gap
-      layout.style.setProperty("--toc-w", "0rem");
-      layout.style.setProperty("--toc-gap", "0rem");
-    }
+    document.body.dataset.toc = open ? "open" : "closed";
   }, [open]);
+
 
   // Active section highlight
   useEffect(() => {
@@ -160,9 +154,14 @@ export default function Toc() {
         {/* Toggle button hanging over the content edge */}
         <button
           className={[
-            "absolute top-2 z-10 inline-flex h-7 w-7 items-center justify-center rounded-full bg-background text-xs shadow transition-all duration-200",
-            open ? "-left-3" : "-left-6",
+            "hidden lg:inline-flex fixed z-10 h-7 w-7 items-center justify-center rounded-full bg-background text-xs shadow transition-all duration-200",
           ].join(" ")}
+          style={{
+            top: "calc(var(--nav-h) + 0.5rem)",
+            right: open
+              ? `calc(${TOC_OPEN_WIDTH} + ${TOC_OPEN_GAP} - 0.75rem)`
+              : "0.75rem",
+          }}
           onClick={() => setOpen((v) => !v)}
           aria-expanded={open}
           aria-controls="desktop-toc"
